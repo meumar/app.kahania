@@ -16,6 +16,7 @@ import Button from "../../components/Form-items/Button";
 import { createPost } from "../../http/post";
 import LoadingOverlay from "../../components/UI-widgets/LoadingOverlay";
 import IconButton from "../../components/Form-items/IconButtom";
+import RecordingTimer from "../../components/UI-widgets/Timer";
 
 import * as ImagePicker from "expo-image-picker";
 import { Audio } from "expo-av";
@@ -99,6 +100,13 @@ function NewPost({ navigation }) {
       onInputChange("file_type", "");
     }
   }
+
+  const removeFile = async () => {
+    onInputChange("file", "");
+    onInputChange("file_type", "");
+    setRecordedSound(undefined);
+    setRecording(undefined);
+  };
 
   const pickImage = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
@@ -273,22 +281,13 @@ function NewPost({ navigation }) {
                 size={30}
                 isMaterialIcons={true}
                 style={{ margin: 0 }}
-                onPress={recording ? stopRecording : startRecording}
+                onPress={startRecording}
               />
             </View>
           </View>
-          {postDetails.file.value && (
-            <View>
-              {postDetails.file_type.value == "audio/webm" ? (
-                <Button onPress={() => recordedSound.replayAsync()}>
-                  Play
-                </Button>
-              ) : (
-                <Image
-                  source={{ uri: postDetails.file.value }}
-                  style={styles.image}
-                />
-              )}
+          {recording && (
+            <View style={{ alignItems: "center" }}>
+              <RecordingTimer stopRecoding={stopRecording} />
             </View>
           )}
           <View>
@@ -304,6 +303,30 @@ function NewPost({ navigation }) {
             placeholder="Post something..."
             onChangeText={onInputChange.bind(this, "body")}
           />
+          {postDetails.file.value && !recording && (
+            <View style={{ marginTop: 10 }}>
+              {postDetails.file_type.value == "audio/webm" ? (
+                <Button onPress={() => recordedSound.replayAsync()}>
+                  Play
+                </Button>
+              ) : (
+                <View>
+                  <Image
+                    source={{ uri: postDetails.file.value }}
+                    style={styles.image}
+                  />
+                </View>
+              )}
+              <IconButton
+                icon="delete"
+                color={colors.primary800}
+                size={30}
+                isMaterialIcons={true}
+                style={{ alignSelf: "center" }}
+                onPress={removeFile}
+              />
+            </View>
+          )}
         </Card>
       </ScrollView>
     </View>
