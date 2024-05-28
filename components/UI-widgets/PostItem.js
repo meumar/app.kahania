@@ -9,19 +9,35 @@ import IconButton from "../Form-items/IconButtom";
 import LikeCount from "./LikeCount";
 import { likeHandler } from "../../http/post";
 import LinkButton from "../Form-items/LinkButton";
+import { Audio } from "expo-av";
 
 function PostItem({ data, reportPost }) {
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
   const [postText, setPostText] = useState("");
   const [hasMoreText, setHasMoreText] = useState(false);
-  const [postImage, setPostImage] = useState("");
+  const [postFile, setPostFile] = useState("");
+  const [postFileType, setPostFileType] = useState("");
+  const [sound, setSound] = useState();
+  const [isPlaying, setIsPlaying] = useState(false);
 
   const maxTextLength = 100;
   const navigation = useNavigation();
   useEffect(() => {
+    return sound
+      ? () => {
+          console.log("Unloading Sound");
+          sound.unloadAsync();
+        }
+      : undefined;
+  }, [sound]);
+
+  useEffect(() => {
     if (data?.file) {
-      setPostImage(data.file);
+      setPostFile(data.file);
+    }
+    if (data?.file_type) {
+      setPostFileType(data.file_type);
     }
     if (data?.likedByUser) {
       setIsLiked(true);
@@ -70,6 +86,24 @@ function PostItem({ data, reportPost }) {
     }
   }
 
+  async function playAudio() {
+    try {
+      if (data?.file) {
+        const { sound: newSound } = await Audio.Sound.createAsync({ uri: data.file });
+        setSound(newSound);
+        setIsPlaying(true);
+        await newSound.playAsync();
+        newSound.setOnPlaybackStatusUpdate((status) => {
+          if ("didJustFinish" in status && status.didJustFinish) {
+            setIsPlaying(false);
+          }
+        });
+      }
+    } catch (e) {
+      console.log("Play error", e);
+    }
+  }
+
   return (
     <View style={[styles.card, styles.elevationStyle]}>
       <View style={styles.contentBox}>
@@ -94,9 +128,19 @@ function PostItem({ data, reportPost }) {
             </LinkButton>
           )}
         </View>
-        {postImage && (
+        {postFile && postFileType == "audio/webm" && (
+          <View>
+            <IconButton
+              icon={isPlaying ? "stop-circle-outline" : "play-circle-outline"}
+              onPress={playAudio}
+              color={colors.primary800}
+              size={32}
+            />
+          </View>
+        )}
+        {postFile && postFileType !== "audio/webm" && (
           <View style={{ marginTop: 12 }}>
-            <Image source={{ uri: postImage }} style={styles.image} />
+            <Image source={{ uri: postFile }} style={styles.image} />
           </View>
         )}
       </View>

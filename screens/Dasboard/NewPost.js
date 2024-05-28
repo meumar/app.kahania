@@ -225,7 +225,7 @@ function NewPost({ navigation }) {
     };
     if (postDetails.file.value) {
       params["file"] = postDetails.file.value;
-      params["file_type"] = postDetails.file.value;
+      params["file_type"] = postDetails.file_type.value;
     }
     if (postDetails.tags.value) {
       params["tags"] = postDetails.tags.value;
