@@ -18,6 +18,8 @@ import LoadingOverlay from "../../components/UI-widgets/LoadingOverlay";
 import IconButton from "../../components/Form-items/IconButtom";
 
 import * as ImagePicker from "expo-image-picker";
+import { Audio } from "expo-av";
+
 function NewPost({ navigation }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -58,6 +60,62 @@ function NewPost({ navigation }) {
       message: "",
     },
   });
+  const [recording, setRecording] = useState();
+  const [permissionResponse, requestPermission] = Audio.usePermissions();
+  const [recordedSound, setRecordedSound] = useState();
+
+  async function startRecording() {
+    try {
+      if (permissionResponse.status !== "granted") {
+        await requestPermission();
+      }
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+      });
+      const { recording } = await Audio.Recording.createAsync(
+        Audio.RecordingOptionsPresets.HIGH_QUALITY
+      );
+      setRecording(recording);
+    } catch (err) {
+      console.error("Failed to start recording", err);
+    }
+  }
+
+  async function stopRecording() {
+    setRecording(undefined);
+    await recording.stopAndUnloadAsync();
+    await Audio.setAudioModeAsync({
+      allowsRecordingIOS: false,
+    });
+    const { sound, status } = await recording.createNewLoadedSoundAsync();
+    setRecordedSound(sound);
+    const uri = recording.getURI();
+    if (uri) {
+      onInputChange("file", uri);
+      onInputChange("file_type", "audio/webm");
+    } else {
+      onInputChange("file", "");
+      onInputChange("file_type", "");
+    }
+  }
+
+  const pickImage = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      // allowsMultipleSelection: true,
+      quality: 1,
+    });
+    if (!result.canceled) {
+      onInputChange("file", result.assets[0].uri);
+      onInputChange("file_type", result.assets[0].mimeType);
+    } else {
+      onInputChange("file", "");
+      onInputChange("file_type", "");
+    }
+  };
 
   const shareOptions = [
     {
@@ -179,24 +237,6 @@ function NewPost({ navigation }) {
       setLoading(false);
     }
   }
-
-  const pickImage = async () => {
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [4, 3],
-      // allowsMultipleSelection: true,
-      quality: 1,
-    });
-    if (!result.canceled) {
-      onInputChange("file", result.assets[0].uri);
-      onInputChange("file_type", result.assets[0].mimeType);
-    } else {
-      onInputChange("file", "");
-      onInputChange("file_type", "");
-    }
-  };
-
   if (loading) {
     return <LoadingOverlay message={messages.postSharingMessage} />;
   }
@@ -220,21 +260,35 @@ function NewPost({ navigation }) {
             </View>
             <View style={styles.right}>
               <IconButton
-                icon="add-photo-alternate"
+                icon="add-to-photos"
                 color={colors.primary800}
                 size={30}
                 isMaterialIcons={true}
                 style={{ margin: 0 }}
                 onPress={pickImage}
               />
+              <IconButton
+                icon="mic"
+                color={colors.primary800}
+                size={30}
+                isMaterialIcons={true}
+                style={{ margin: 0 }}
+                onPress={recording ? stopRecording : startRecording}
+              />
             </View>
           </View>
           {postDetails.file.value && (
             <View>
-              <Image
-                source={{ uri: postDetails.file.value }}
-                style={styles.image}
-              />
+              {postDetails.file_type.value == "audio/webm" ? (
+                <Button onPress={() => recordedSound.replayAsync()}>
+                  Play
+                </Button>
+              ) : (
+                <Image
+                  source={{ uri: postDetails.file.value }}
+                  style={styles.image}
+                />
+              )}
             </View>
           )}
           <View>
@@ -299,6 +353,7 @@ const styles = StyleSheet.create({
   },
   right: {
     // alignSelf: "flex-end",
+    flexDirection: "row",
   },
   head: {
     marginTop: 4,

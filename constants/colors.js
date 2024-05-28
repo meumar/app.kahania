@@ -14,7 +14,7 @@ export const colors = {
   success500: '#67C23A'
 };
 
-export const api_end_point = 'https://6944-2405-201-c051-5807-60b1-f895-e6cd-5eef.ngrok-free.app';
+export const api_end_point = 'https://898b-2405-201-c051-5807-60b1-f895-e6cd-5eef.ngrok-free.app';
 
 export const messages = {
   invalidCredentials: "Please enter valid credentials",
